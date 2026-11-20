@@ -500,8 +500,10 @@ form.onsubmit=async e=>{
   const f=new FormData(form);
   const payload={name:f.get('name'),email:f.get('email'),message:f.get('msg'),website:f.get('website')};
   sendBtn.disabled=true;say('Sending…');
+  // free hosts can take up to a minute to wake up: explain the wait, give up after 40s
+  const ctl=new AbortController(),giveUp=setTimeout(()=>ctl.abort(),40000),slow=setTimeout(()=>say('Still sending… the server is waking up, please wait a moment.'),4000);
   try{
-    const r=await api('/api/contact',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const r=await api('/api/contact',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),signal:ctl.signal}).finally(()=>{clearTimeout(giveUp);clearTimeout(slow)});
     const ct=r.headers.get('content-type')||'';
     if(!ct.includes('json'))throw new Error('offline');
     const data=await r.json();
